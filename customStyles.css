@@ -1,0 +1,30 @@
+/* customStyles.css */
+
+.profile-bank-id-display {
+    font-size: 0.65em; /* Smaller text for bank ID */
+    color: rgba(255, 255, 255, 0.75); /* Light white/gray, slightly transparent */
+    display: block;
+    line-height: 1;
+    margin-bottom: 2px; /* Space between bank ID and name */
+}
+
+.profile-name-display {
+    font-size: 0.8em; /* Slightly smaller name to fit better */
+    display: block;
+    line-height: 1.1;
+    word-break: break-word; /* Allow name to wrap */
+    max-height: calc(1.1em * 2 + 2px); /* Approx 2 lines for the name part */
+    overflow: hidden;
+}
+
+.add-bank-button {
+    background-color: #333; /* Dark gray / blackish */
+    color: white;
+    font-size: 28px; /* Larger '+' sign */
+    line-height: 1; /* Center '+' vertically better */
+}
+
+.add-bank-button:hover {
+    background-color: #555; /* Lighter gray on hover */
+    transform: scale(1.1);
+}

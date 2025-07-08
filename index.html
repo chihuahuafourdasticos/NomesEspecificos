@@ -1,0 +1,57 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Dados Avançado</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="customStyles.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "lodash-es/": "https://cdn.jsdelivr.net/npm/lodash-es@4.17.21/"
+      }
+    }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="profile-circles-container" id="profileCirclesContainer">
+            <!-- Profile circles will be generated here by JS -->
+        </div>
+
+        <h1>Gerador de Dados Pessoais Múltiplos</h1>
+        <p>Use a primeira caixa para extração e cópia imediata. Use os Bancos de Dados (B-1 a B-5) para salvar múltiplas entradas (filtradas por ano de nascimento 1974-2004). Clique nas bolinhas de perfil (1-5) para gerar dados do banco correspondente.</p>
+        
+        <h2>Extração Rápida (Independente dos Bancos):</h2>
+        <textarea id="inputText" rows="10" placeholder=""></textarea>
+        <button id="generateButton">Gerar e Copiar Imediatamente</button>
+        
+        <h2>Gerenciamento de Bancos de Dados:</h2>
+        <div class="bank-selector-container" id="bankSelectorContainer">
+            <p>Selecione um banco para visualizar/adicionar dados ou gerar um novo nome:</p>
+            <!-- Bank selector buttons will be generated here by JS -->
+        </div>
+        
+        <div class="button-group">
+            <button id="dbToggleButton">Adicionar/Ver Dados do Banco Selecionado</button>
+            <button id="generateFromDbButton">Gerar Novo Nome do Banco Selecionado</button>
+        </div>
+        <p id="dbStatus">Selecione um banco para ver o status.</p>
+
+        <div id="dbSection" class="hidden">
+            <h2 id="dbSectionTitle">Adicionar ao Banco de Dados</h2>
+            <p>Cole um ou mais registros abaixo. Cada registro deve conter Nome, CPF e Data de Nascimento. Serão salvos apenas os registros com ano de nascimento entre 1974 e 2004.</p>
+            <textarea id="dbInputText" rows="12" placeholder="Cole os dados aqui para salvar no banco selecionado. Certifique-se de incluir 'Data de Nascimento: DD/MM/YYYY'.&#10;Exemplo:&#10;Nome: JULIO CESAR CARVALHO&#10;• CPF: 07096363696&#10;• Sexo: M&#10;• Data de Nascimento: 15/11/1981&#10;...&#10;&#10;Nome: MARIA SILVA&#10;• CPF: 12345678900&#10;• Data de Nascimento: 01/01/1990"></textarea>
+            <button id="saveToDbButton">Salvar no Banco de Dados Selecionado</button>
+            <button id="closeDbSectionButton" class="secondary">Fechar</button>
+            <div id="dbMessage" class="message-area"></div>
+        </div>
+        
+        <h2>Resultado Gerado:</h2>
+        <pre id="outputText"></pre>
+
+        <button id="resetAllDbsButton" class="danger">Resetar TODOS os Bancos de Dados e Perfis</button>
+    </div>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
