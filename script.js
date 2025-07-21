@@ -672,6 +672,64 @@ generateFromDbButton.addEventListener('click', () => {
     handleProfileClick(activeBankKey, generateFromDbButton);
 });
 
+// Backup and Restore Buttons
+document.getElementById('backupButton').addEventListener('click', () => {
+    try {
+        const dataStr = JSON.stringify(appData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        link.download = `backup-gerador-dados-${timestamp}.json`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Erro ao criar backup:", error);
+        alert("Ocorreu um erro ao tentar criar o backup.");
+    }
+});
+
+document.getElementById('restoreButton').addEventListener('click', () => {
+    document.getElementById('restoreInput').click();
+});
+
+document.getElementById('restoreInput').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm("Tem certeza que deseja restaurar os dados deste arquivo? TODOS os dados atuais serão substituídos. Esta ação não pode ser desfeita.")) {
+        event.target.value = null; // Reset file input
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const loadedData = JSON.parse(e.target.result);
+            // Basic validation
+            if (loadedData && typeof loadedData.databases === 'object' && typeof loadedData.profileNames === 'object') {
+                appData = loadedData;
+                saveAppData(); // Save the new data to localStorage
+                fullAppRefresh(); // Redraw UI from the new data
+                alert("Backup restaurado com sucesso!");
+            } else {
+                throw new Error("Formato de arquivo inválido.");
+            }
+        } catch (error) {
+            console.error("Erro ao restaurar backup:", error);
+            alert(`Falha ao restaurar o backup. O arquivo pode estar corrompido ou em um formato incorreto.\n\nDetalhes: ${error.message}`);
+        } finally {
+            event.target.value = null; // Reset file input
+        }
+    };
+    reader.onerror = () => {
+        alert("Erro ao ler o arquivo de backup.");
+        event.target.value = null; // Reset file input
+    };
+    reader.readAsText(file);
+});
+
 // "Resetar TODOS os Bancos de Dados e Perfis" button
 document.getElementById('resetAllDbsButton').addEventListener('click', () => {
     if (confirm("Tem certeza que deseja resetar TODOS os bancos de dados e nomes de perfis? Esta ação não pode ser desfeita.")) {
@@ -694,6 +752,25 @@ document.getElementById('resetAllDbsButton').addEventListener('click', () => {
             dbSection.classList.add('hidden');
             alert("Todos os bancos de dados e perfis foram resetados.");
         }
+    }
+});
+
+// --- HELP MODAL ---
+const helpModal = document.getElementById('helpModal');
+const helpButton = document.getElementById('helpButton');
+const closeButton = document.querySelector('.modal-close-button');
+
+helpButton.addEventListener('click', () => {
+    helpModal.style.display = 'block';
+});
+
+closeButton.addEventListener('click', () => {
+    helpModal.style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+    if (event.target == helpModal) {
+        helpModal.style.display = 'none';
     }
 });
 

@@ -19,7 +19,10 @@
             <!-- Profile circles will be generated here by JS -->
         </div>
 
-        <h1>Gerador de Dados Pessoais Múltiplos</h1>
+        <div class="header-container">
+            <h1>Gerador de Dados Pessoais Múltiplos</h1>
+            <div id="helpButton" class="help-icon" title="Ajuda">💡</div>
+        </div>
         <p>Use a primeira caixa para extração e cópia imediata. Use os Bancos de Dados (B-1 a B-5) para salvar múltiplas entradas (filtradas por ano de nascimento 1974-2004). Clique nas bolinhas de perfil (1-5) para gerar dados do banco correspondente.</p>
         
         <h2>Extração Rápida (Independente dos Bancos):</h2>
@@ -50,7 +53,58 @@
         <h2>Resultado Gerado:</h2>
         <pre id="outputText"></pre>
 
+        <div class="advanced-actions">
+            <button id="backupButton" class="secondary">Fazer Backup</button>
+            <button id="restoreButton" class="secondary">Importar Backup</button>
+            <input type="file" id="restoreInput" style="display: none;" accept=".json">
+        </div>
+        
         <button id="resetAllDbsButton" class="danger">Resetar TODOS os Bancos de Dados e Perfis</button>
+    </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-button">&times;</span>
+            <h2>Guia de Uso</h2>
+            
+            <h4>Extração Rápida</h4>
+            <p>Cole qualquer texto contendo "Nome:" e "CPF:" na primeira caixa e clique em "Gerar e Copiar Imediatamente". O sistema extrairá, formatará e copiará esses dois dados, ignorando todo o resto. É uma ferramenta para uso rápido e único, independente dos bancos de dados.</p>
+            
+            <h4>Bancos de Dados e Perfis</h4>
+            <p>O coração da ferramenta. Você pode ter múltiplos bancos de dados (B-1, B-2, etc.) para organizar diferentes listas de pessoas.</p>
+            <ul>
+                <li><strong>Bolinhas de Perfil (Topo):</strong> Cada bolinha representa um banco de dados.
+                    <ul>
+                        <li><strong>Clique:</strong> Gera e copia um nome/CPF do banco correspondente (ex: bolinha "P-1" usa dados do "B-1"). Os nomes não se repetem até que toda a lista seja usada.</li>
+                        <li><strong>Clique com botão direito:</strong> Permite renomear o perfil para algo mais descritivo (ex: "Clientes Aprovados"). O nome do banco (B-1) continuará visível acima do novo nome.</li>
+                        <li><strong>Bolinha com "+":</strong> Clique para adicionar um novo banco de dados e seu perfil correspondente.</li>
+                    </ul>
+                </li>
+                <li><strong>Gerenciamento de Bancos (Meio):</strong>
+                    <ul>
+                        <li><strong>Seleção (B-1, B-2...):</strong> Clique para selecionar um banco de dados. O banco ativo é destacado em azul. Todas as ações abaixo se aplicarão ao banco selecionado.</li>
+                         <li><strong>Clique com botão direito nos botões B-X:</strong> Abre um menu para <strong>resetar</strong> (limpar todos os dados) ou <strong>excluir</strong> permanentemente o banco de dados. <strong>Atenção:</strong> Exige senha de confirmação (100822).</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Adicionando Dados a um Banco</h4>
+            <ol>
+                <li>Selecione o banco desejado (ex: B-1).</li>
+                <li>Clique em "Adicionar/Ver Dados do Banco Selecionado".</li>
+                <li>Na nova área que aparece, cole um ou mais registros. O sistema só salvará pessoas com ano de nascimento entre <strong>1974 e 2004</strong>.</li>
+                <li>Clique em "Salvar no Banco de Dados".</li>
+            </ol>
+            
+            <h4>Ações Avançadas (Botões inferiores)</h4>
+            <ul>
+                <li><strong>Fazer Backup:</strong> Salva todos os seus bancos de dados e nomes de perfis em um único arquivo <code>.json</code> no seu computador.</li>
+                <li><strong>Importar Backup:</strong> Carrega um arquivo de backup <code>.json</code>. <strong>Atenção:</strong> Isso substituirá todos os dados atuais pelos dados do arquivo.</li>
+                <li><strong>Resetar TUDO:</strong> Apaga permanentemente todos os bancos, perfis e retorna a aplicação ao estado inicial. Exige senha de confirmação (100822).</li>
+            </ul>
+
+            <p><strong>Dica:</strong> Todas as suas alterações são salvas automaticamente no navegador. Se fechar a aba, tudo estará aqui quando voltar.</p>
+        </div>
     </div>
     <script type="module" src="script.js"></script>
 </body>
