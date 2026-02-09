@@ -218,37 +218,100 @@ pre#outputText {
     border: 1px solid #f5c6cb;
 }
 
+/* Profile rectangles container */
 .profile-circles-container {
-    display: flex;
-    justify-content: center;
+    display: grid;
     gap: 10px;
     margin-bottom: 20px;
+    justify-content: center;
+    align-items: start;
 }
 
-.profile-circle {
-    width: 50px;
-    height: 50px;
+/* Default desktop layout: 4 columns */
+.profile-circles-container.desktop-mode {
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+}
+
+/* Mobile layout: 3 columns */
+.profile-circles-container.mobile-mode {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+}
+
+/* Profile rectangle card */
+.profile-rect {
+    min-height: 56px;
     background-color: #007bff;
     color: white;
-    border-radius: 50%;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     font-weight: bold;
-    font-size: 14px; 
+    font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: background-color 0.15s, transform 0.08s;
     text-align: center;
-    padding: 5px; 
+    padding: 8px;
     box-sizing: border-box;
-    overflow: hidden; 
-    line-height: 1.1; 
+    overflow: hidden;
+    line-height: 1.1;
 }
 
-.profile-circle:hover {
+/* Bank id small label on top inside rect */
+.profile-bank-id-display {
+    font-size: 0.7em;
+    color: rgba(255,255,255,0.85);
+    display: block;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+/* Name can wrap to two lines */
+.profile-name-display {
+    font-size: 0.9em;
+    display: block;
+    line-height: 1.05;
+    word-break: break-word;
+    max-height: calc(1.05em * 2 + 4px);
+    overflow: hidden;
+}
+
+/* Hover / active states */
+.profile-rect:hover {
     background-color: #0056b3;
-    transform: scale(1.1);
+    transform: translateY(-3px);
+}
+
+/* Add-button style adapted to rectangle */
+.add-bank-button {
+    background-color: #333;
+    color: white;
+    font-size: 20px;
+    line-height: 1;
+    border-radius: 8px;
+}
+
+/* Layout toggle buttons */
+.layout-toggle {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.layout-button {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.layout-button.active {
+    background: #e9f2ff;
+    border-color: #bcd9ff;
 }
 
 .bank-selector-container {

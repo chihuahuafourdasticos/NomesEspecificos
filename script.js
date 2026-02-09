@@ -72,29 +72,32 @@ function extractDataFromText(textBlock) {
     let name = null;
     let cpf = null;
     let yearOfBirth = null;
+    let dobString = null;
+    let dobParts = null; // { year, month, day }
 
     // Regex patterns using 'i' flag for case-insensitivity.
     // They match the keyword at the start of the line, optionally preceded by 
-    // non-alphanumeric characters (like '•', '*', '-') and/or whitespace.
+    // non-alphanumeric characters (like '•', '*', '-', emojis) and/or whitespace.
     // The keyword must be followed by a colon.
     const namePattern = /^(?:[^a-z0-9\s]*\s*)?nome\s*:/i; 
-    const cpfPattern = /^(?:[^a-z0-9\s]*\s*)?cpf\s*:/i;    
-    const dobPattern = /^(?:[^a-z0-9\s]*\s*)?data\s*(?:de\s*)?nascimento\s*:/i;
+    const cpfPattern = /^(?:[^a-z0-9\s]*\s*)?cpf\s*:/i;
+    // Accept variations: "NASC:", "NASCIMENTO:", "DATA NASCIMENTO:", "DATA DE NASCIMENTO:"
+    const dobPattern = /^(?:[^a-z0-9\s]*\s*)?(?:nasc|nascimento|(?:data\s*(?:de\s*)?nascimento))\s*:/i;
 
     for (const rawLine of lines) {
         const currentLine = trim(rawLine);
         if (currentLine === "") continue;
 
+        // NAME
         if (!name) {
             const nameMatch = currentLine.match(namePattern);
             if (nameMatch) {
-                // nameMatch.index is the start of the match in currentLine.
-                // nameMatch[0] is the matched string part (e.g., "Nome:", "• nome : ").
                 const valuePart = trim(currentLine.substring(nameMatch.index + nameMatch[0].length));
                 if (valuePart) name = valuePart;
             }
         }
 
+        // CPF
         if (!cpf) {
             const cpfMatch = currentLine.match(cpfPattern);
             if (cpfMatch) {
@@ -104,20 +107,56 @@ function extractDataFromText(textBlock) {
             }
         }
 
+        // DATE OF BIRTH - multiple formats
         if (!yearOfBirth) {
             const dobMatch = currentLine.match(dobPattern);
             if (dobMatch) {
                 const valuePart = trim(currentLine.substring(dobMatch.index + dobMatch[0].length));
-                // Regex to match DD/MM/YYYY. Allows for other text after the date string.
-                const dateParts = valuePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); 
-                if (dateParts) {
-                    yearOfBirth = parseInt(dateParts[3], 10);
+
+                // Try DD/MM/YYYY first
+                const dmY = valuePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (dmY) {
+                    const d = dmY[1].padStart(2, '0');
+                    const m = dmY[2].padStart(2, '0');
+                    const y = dmY[3];
+                    yearOfBirth = parseInt(y, 10);
+                    dobString = `${d}/${m}/${y}`;
+                    dobParts = { year: yearOfBirth, month: parseInt(m,10), day: parseInt(d,10) };
+                    continue;
+                }
+
+                // Try ISO YYYY-MM-DD
+                const iso = valuePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (iso) {
+                    const y = iso[1];
+                    const m = iso[2].padStart(2, '0');
+                    const d = iso[3].padStart(2, '0');
+                    yearOfBirth = parseInt(y, 10);
+                    dobString = `${y}-${m}-${d}`;
+                    dobParts = { year: yearOfBirth, month: parseInt(m,10), day: parseInt(d,10) };
+                    continue;
+                }
+
+                // Try to find a 4-digit year in the value if explicit date not present
+                const yearOnly = valuePart.match(/(\d{4})/);
+                if (yearOnly) {
+                    yearOfBirth = parseInt(yearOnly[1], 10);
+                    dobString = yearOnly[1];
+                    dobParts = { year: yearOfBirth };
                 }
             }
         }
     }
-    if (name && cpf && yearOfBirth) return { name, cpf, yearOfBirth };
-    return null;
+
+    const result = {};
+    if (name) result.name = name;
+    if (cpf) result.cpf = cpf;
+    if (yearOfBirth) result.yearOfBirth = yearOfBirth;
+    if (dobString) result.dobString = dobString;
+    if (dobParts) result.dobParts = dobParts; // optional detailed parts (year, month, day)
+
+    // Return an object with found fields, or an empty object if nothing was found.
+    return result;
 }
 
 function promptForPassword(actionName) {
@@ -136,7 +175,8 @@ function initializeAppData(numBanks = INITIAL_NUM_BANKS) {
         databases: {}, 
         generatedIndices: {}, 
         profileNames: {},
-        lastActiveBankKey: null // Initialize lastActiveBankKey
+        lastActiveBankKey: null, // Initialize lastActiveBankKey
+        filterRange: { min: 1974, max: 2004 } // default global filter
     };
     for (let i = 1; i <= numBanks; i++) {
         const bankKey = `B-${i}`;
@@ -167,6 +207,7 @@ function loadAppData() {
         appData.databases = appData.databases || {};
         appData.generatedIndices = appData.generatedIndices || {};
         appData.profileNames = appData.profileNames || {};
+        appData.filterRange = appData.filterRange || { min: 1974, max: 2004 };
         // appData.lastActiveBankKey will be loaded if it exists, otherwise it's undefined
 
         const bankKeys = Object.keys(appData.databases);
@@ -217,14 +258,14 @@ function saveAppData() {
 
 function updateDbStatus(bankKey) {
     if (!bankKey || !appData.databases[bankKey]) {
-        // This should ideally not be hit if bankKey is always valid when passed here.
-        // updateUIForNoActiveBank handles the general "no active bank" state.
         dbStatusElement.textContent = "Banco inválido ou não encontrado.";
         generateFromDbButton.disabled = true;
         return;
     }
     const count = appData.databases[bankKey].length;
-    dbStatusElement.textContent = `Banco ${bankKey}: ${count} pessoa(s) (1974-2004).`;
+    const fr = appData.filterRange || {min:1974,max:2004};
+    const filterText = fr && (fr.min || fr.max) ? ` Filtro ativo: ${fr.min}–${fr.max}.` : '';
+    dbStatusElement.textContent = `Banco ${bankKey}: ${count} pessoa(s) (${fr.min}-${fr.max}).${filterText}`;
     dbSectionTitle.textContent = `Adicionar ao Banco de Dados (${bankKey})`;
     generateFromDbButton.disabled = count === 0;
 }
@@ -269,8 +310,8 @@ function updateUIForActiveBank() {
 }
 
 // --- UI ELEMENT CREATION ---
-function updateProfileCircleDisplay(circleElement, bankId, profileName) {
-    circleElement.innerHTML = `
+function updateProfileCircleDisplay(rectElement, bankId, profileName) {
+    rectElement.innerHTML = `
         <span class="profile-bank-id-display">${bankId}</span>
         <span class="profile-name-display">${profileName}</span>
     `;
@@ -278,31 +319,36 @@ function updateProfileCircleDisplay(circleElement, bankId, profileName) {
 
 function createProfileCircles() {
     profileCirclesContainer.innerHTML = ''; 
+    // Ensure container has a layout class; default to desktop-mode if not set
+    if (!profileCirclesContainer.classList.contains('desktop-mode') && !profileCirclesContainer.classList.contains('mobile-mode')) {
+        profileCirclesContainer.classList.add('desktop-mode');
+    }
+
     const bankKeys = Object.keys(appData.databases).sort((a, b) => parseInt(a.split('-')[1]) - parseInt(b.split('-')[1]));
 
     bankKeys.forEach(bankKey => {
         const bankNum = bankKey.split('-')[1];
         const profileKey = `P-${bankNum}`;
-        const circle = document.createElement('div');
-        circle.className = 'profile-circle';
-        circle.dataset.profileId = profileKey;
-        circle.dataset.bankId = bankKey;
+        const rect = document.createElement('div');
+        rect.className = 'profile-rect';
+        rect.dataset.profileId = profileKey;
+        rect.dataset.bankId = bankKey;
         
         const profileName = appData.profileNames[profileKey] || `Perfil ${bankNum}`;
-        updateProfileCircleDisplay(circle, bankKey, profileName);
+        updateProfileCircleDisplay(rect, bankKey, profileName);
         
-        circle.addEventListener('click', () => handleProfileClick(bankKey, circle));
-        circle.addEventListener('contextmenu', (e) => {
+        rect.addEventListener('click', () => handleProfileClick(bankKey, rect));
+        rect.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            handleProfileRename(profileKey, circle);
+            handleProfileRename(profileKey, rect);
         });
-        profileCirclesContainer.appendChild(circle);
+        profileCirclesContainer.appendChild(rect);
     });
 
     const addButton = document.createElement('div');
     addButton.id = 'addBankButton';
-    addButton.className = 'profile-circle add-bank-button';
-    addButton.textContent = '+';
+    addButton.className = 'profile-rect add-bank-button';
+    addButton.innerHTML = `<span style="font-size:20px;line-height:1;">+</span>`;
     addButton.title = 'Adicionar novo banco de dados';
     addButton.addEventListener('click', handleAddBankClick);
     profileCirclesContainer.appendChild(addButton);
@@ -485,10 +531,22 @@ function handleProfileClick(bankKey, circleElementOrButton) {
     const currentBankData = appData.databases[bankKey];
     const currentGeneratedIndices = generatedIndicesSets[bankKey];
 
+    // Apply year filter when selecting available indices
+    const fr = appData.filterRange || { min: 1974, max: 2004 };
     let availableIndices = [];
     for (let i = 0; i < currentBankData.length; i++) {
-        if (!currentGeneratedIndices.has(i)) {
+        const entry = currentBankData[i];
+        const withinRange = (typeof entry.yearOfBirth === 'number') && entry.yearOfBirth >= fr.min && entry.yearOfBirth <= fr.max;
+        if (!currentGeneratedIndices.has(i) && withinRange) {
             availableIndices.push(i);
+        }
+    }
+    // If no available entries under current filter but there are entries in bank, inform user (do not auto-reset generated indices)
+    if (availableIndices.length === 0) {
+        const anyInRange = currentBankData.some(e => typeof e.yearOfBirth === 'number' && e.yearOfBirth >= fr.min && e.yearOfBirth <= fr.max);
+        if (!anyInRange) {
+            outputElement.textContent = `Nenhum registro em ${bankKey} corresponde ao filtro ${fr.min}-${fr.max}. Ajuste o filtro ou limpe para gerar nomes.`;
+            return;
         }
     }
 
@@ -538,47 +596,24 @@ function handleProfileRename(profileKey, circleElement) {
 // Original "Gerar e Copiar" button
 document.getElementById('generateButton').addEventListener('click', () => {
     const inputText = document.getElementById('inputText').value;
-    const lines = inputText.split('\n');
-    let processedNameLine = '';
-    let processedCpfLine = '';
-
-    for (const rawLine of lines) {
-        const currentLine = trim(rawLine);
-        if (currentLine === "") continue;
-        const lowerLine = currentLine.toLowerCase();
-
-        if (!processedNameLine) { 
-            const nameKeywordIndex = lowerLine.indexOf('nome');
-            if (nameKeywordIndex !== -1 && nameKeywordIndex < 10) {
-                const colonIndex = currentLine.indexOf(':', nameKeywordIndex);
-                if (colonIndex !== -1) {
-                    const nameValue = trim(currentLine.substring(colonIndex + 1));
-                    if (nameValue) processedNameLine = `Nome: ${formatName(nameValue)}`;
-                }
-            }
-        }
-        if (!processedCpfLine) { 
-            const cpfKeywordIndex = lowerLine.indexOf('cpf');
-            if (cpfKeywordIndex !== -1 && cpfKeywordIndex < 10) {
-                const colonIndex = currentLine.indexOf(':', cpfKeywordIndex);
-                if (colonIndex !== -1) {
-                    const cpfValue = trim(currentLine.substring(colonIndex + 1)).replace(/\D/g, '');
-                    if (cpfValue) processedCpfLine = `CPF: ${cpfValue}`;
-                }
-            }
-        }
-        if (processedNameLine && processedCpfLine) break; 
-    }
+    const data = extractDataFromText(inputText);
 
     let resultText = '';
-    if (processedNameLine) resultText += processedNameLine;
-    if (processedCpfLine) resultText += (resultText ? '\n' : '') + processedCpfLine;
+    if (data.name) {
+        resultText += `Nome: ${formatName(data.name)}`;
+    }
+    if (data.cpf) {
+        resultText += (resultText ? '\n' : '') + `CPF: ${data.cpf}`;
+    }
+    if (data.dobString) {
+        resultText += (resultText ? '\n' : '') + `Nascimento: ${data.dobString}`;
+    }
     
     outputElement.textContent = resultText;
     if (resultText) {
         copyToClipboard(resultText, document.getElementById('generateButton'), 'Copiado!', 'Gerar e Copiar Imediatamente');
     } else {
-        outputElement.textContent = "Nenhuma informação de Nome ou CPF encontrada para extração rápida.\nCertifique-se que o texto contém linhas como 'Nome: SEU NOME' e 'CPF: SEU CPF'.";
+        outputElement.textContent = "Nenhuma informação de Nome, CPF ou Nascimento encontrada para extração rápida.\nCertifique-se que o texto contém linhas como 'Nome: SEU NOME', 'CPF: SEU CPF' e/ou 'Nascimento: DD/MM/YYYY'.";
     }
 });
 
@@ -623,7 +658,7 @@ document.getElementById('saveToDbButton').addEventListener('click', () => {
         if (!trimmedBlock) return;
         const data = extractDataFromText(trimmedBlock);
 
-        if (data) {
+        if (data.name && data.cpf && data.yearOfBirth) {
             if (data.yearOfBirth >= 1974 && data.yearOfBirth <= 2004) {
                 const formattedName = formatName(data.name);
                 const existingEntry = currentBankDb.find(p => p.cpf === data.cpf);
@@ -644,7 +679,7 @@ document.getElementById('saveToDbButton').addEventListener('click', () => {
             }
         } else {
             const snippet = trimmedBlock.length > 60 ? trimmedBlock.substring(0, 60) + "..." : trimmedBlock;
-            errorMessages.push(`Não foi possível extrair dados válidos do trecho: "${snippet}". Verifique o formato.`);
+            errorMessages.push(`Não foi possível extrair dados válidos (Nome, CPF e Nascimento) do trecho: "${snippet}". Verifique o formato.`);
         }
     });
 
@@ -780,9 +815,75 @@ document.addEventListener('DOMContentLoaded', () => {
                   // setActiveBank then updates UI and saves.
     createProfileCircles(); 
     createBankSelectorButtons();
-    
-    // The active bank (and its UI indication) is handled by loadAppData -> setActiveBank.
-    // No need for explicit setActiveBank call here again unless loadAppData doesn't fully set UI.
-    // The createBankSelectorButtons might need to ensure the .active class is correctly set based on global activeBankKey.
-    // Let's ensure createBankSelectorButtons correctly reflects current activeBankKey. (Added logic in that function)
+
+    // Layout toggle buttons behavior
+    const desktopBtn = document.getElementById('desktopModeButton');
+    const mobileBtn = document.getElementById('mobileModeButton');
+
+    function setLayoutMode(mode) {
+        if (mode === 'desktop') {
+            profileCirclesContainer.classList.remove('mobile-mode');
+            profileCirclesContainer.classList.add('desktop-mode');
+            desktopBtn.classList.add('active');
+            desktopBtn.setAttribute('aria-pressed', 'true');
+            mobileBtn.classList.remove('active');
+            mobileBtn.setAttribute('aria-pressed', 'false');
+        } else {
+            profileCirclesContainer.classList.remove('desktop-mode');
+            profileCirclesContainer.classList.add('mobile-mode');
+            mobileBtn.classList.add('active');
+            mobileBtn.setAttribute('aria-pressed', 'true');
+            desktopBtn.classList.remove('active');
+            desktopBtn.setAttribute('aria-pressed', 'false');
+        }
+        // Save user's preferred layout in localStorage
+        localStorage.setItem('generator_layout_mode', mode);
+    }
+
+    // Restore saved layout mode or default to desktop
+    const savedMode = localStorage.getItem('generator_layout_mode') || 'desktop';
+    setLayoutMode(savedMode);
+
+    desktopBtn.addEventListener('click', () => setLayoutMode('desktop'));
+    mobileBtn.addEventListener('click', () => setLayoutMode('mobile'));
+
+    // --- Year filter controls hookup ---
+    const filterMinInput = document.getElementById('filterMinYear');
+    const filterMaxInput = document.getElementById('filterMaxYear');
+    const applyFilterBtn = document.getElementById('applyYearFilterButton');
+    const clearFilterBtn = document.getElementById('clearYearFilterButton');
+
+    function refreshFilterInputs() {
+        const fr = appData.filterRange || {min:1974,max:2004};
+        filterMinInput.value = fr.min || '';
+        filterMaxInput.value = fr.max || '';
+    }
+
+    applyFilterBtn.addEventListener('click', () => {
+        const min = parseInt(filterMinInput.value, 10);
+        const max = parseInt(filterMaxInput.value, 10);
+        if (Number.isNaN(min) || Number.isNaN(max)) {
+            alert('Digite um intervalo de anos válido (ex: 1990 até 2000).');
+            return;
+        }
+        if (min > max) {
+            alert('O ano inicial não pode ser maior que o ano final.');
+            return;
+        }
+        appData.filterRange = { min, max };
+        saveAppData();
+        if (activeBankKey) updateDbStatus(activeBankKey);
+        alert(`Filtro aplicado: ${min}–${max}`);
+    });
+
+    clearFilterBtn.addEventListener('click', () => {
+        appData.filterRange = { min: 1974, max: 2004 };
+        saveAppData();
+        refreshFilterInputs();
+        if (activeBankKey) updateDbStatus(activeBankKey);
+        alert('Filtro restaurado para o padrão 1974–2004.');
+    });
+
+    // initialize filter inputs display
+    refreshFilterInputs();
 });

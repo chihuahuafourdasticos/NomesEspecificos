@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -16,23 +17,37 @@
 <body>
     <div class="container">
         <div class="profile-circles-container" id="profileCirclesContainer">
-            <!-- Profile circles will be generated here by JS -->
+            <!-- Profile rectangles will be generated here by JS -->
         </div>
 
         <div class="header-container">
             <h1>Gerador de Dados Pessoais Múltiplos</h1>
+            <div class="layout-toggle" title="Alternar visualização">
+                <button id="desktopModeButton" class="layout-button active" aria-pressed="true" title="Desktop">🖥️</button>
+                <button id="mobileModeButton" class="layout-button" aria-pressed="false" title="Mobile">📱</button>
+            </div>
             <div id="helpButton" class="help-icon" title="Ajuda">💡</div>
         </div>
         <p>Use a primeira caixa para extração e cópia imediata. Use os Bancos de Dados (B-1 a B-5) para salvar múltiplas entradas (filtradas por ano de nascimento 1974-2004). Clique nas bolinhas de perfil (1-5) para gerar dados do banco correspondente.</p>
         
         <h2>Extração Rápida (Independente dos Bancos):</h2>
-        <textarea id="inputText" rows="10" placeholder=""></textarea>
+        <textarea id="inputText" rows="10" placeholder="Cole qualquer texto com Nome, CPF e Data de Nascimento para extração.&#10;Exemplo:&#10;👤 Nome: MARCELO MENDES&#10;📅 Nascimento: 22/01/2003&#10;📄 CPF: 04560579008"></textarea>
         <button id="generateButton">Gerar e Copiar Imediatamente</button>
         
         <h2>Gerenciamento de Bancos de Dados:</h2>
         <div class="bank-selector-container" id="bankSelectorContainer">
             <p>Selecione um banco para visualizar/adicionar dados ou gerar um novo nome:</p>
             <!-- Bank selector buttons will be generated here by JS -->
+        </div>
+
+        <!-- Year filter controls -->
+        <div class="year-filter-container" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label style="font-size:13px;color:#555;">Filtrar por ano de nascimento:</label>
+            <input id="filterMinYear" type="number" placeholder="1990" style="width:88px;padding:6px;border-radius:6px;border:1px solid #ccd0d5;">
+            <span style="font-size:14px;color:#666;">até</span>
+            <input id="filterMaxYear" type="number" placeholder="2000" style="width:88px;padding:6px;border-radius:6px;border:1px solid #ccd0d5;">
+            <button id="applyYearFilterButton" style="width:auto;padding:8px 10px;border-radius:6px;background:#007bff;color:#fff;border:none;cursor:pointer;">Aplicar</button>
+            <button id="clearYearFilterButton" class="secondary" style="width:auto;padding:8px 10px;border-radius:6px;">Limpar</button>
         </div>
         
         <div class="button-group">
